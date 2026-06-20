@@ -1,0 +1,10 @@
+data/*.osm.pbf
+data/node_cache*
+data/cities.csv
+data/streets.csv
+data/streets_assigned.csv
+data/edges.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.superpowers/
