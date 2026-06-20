@@ -1,0 +1,1 @@
+{"node_count": 1, "edge_count": 0, "wcc_count": 1, "largest_wcc_size": 1, "scc_count": 1, "largest_scc_size": 1, "diameter_path": ["Q64"], "diameter_length": 0, "top_betweenness": [{"id": "Q64", "name": "Berlin", "score": 0.0}], "top_in_degree": [{"id": "Q64", "name": "Berlin", "count": 0}], "top_out_degree": [{"id": "Q64", "name": "Berlin", "count": 0}]}

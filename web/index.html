@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>City Connections</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <section id="slide-title">
+      <h1>City Connections</h1>
+      <p class="subtitle">A graph of Germany built from street names</p>
+    </section>
+
+    <section id="slide-rule">
+      <h2>The Rule</h2>
+      <p>You can travel from <strong>A</strong> to <strong>B</strong><br>
+         if city A has a street named <em>"B-er Straße"</em></p>
+      <p class="muted">Beispielstadt → Musterstadt via <em>Musterstadter Straße</em></p>
+    </section>
+
+    <section id="slide-overview">
+      <h2>The Network</h2>
+      <p><span id="stat-nodes">—</span> cities &nbsp;·&nbsp;
+         <span id="stat-edges">—</span> connections</p>
+      <div id="map-overview"></div>
+    </section>
+
+    <section id="slide-connected">
+      <h2>Connected?</h2>
+      <div id="stat-connectivity"></div>
+    </section>
+
+    <section id="slide-diameter">
+      <h2>The Longest Road</h2>
+      <div id="stat-diameter"></div>
+      <div id="map-diameter"></div>
+    </section>
+
+    <section id="slide-betweenness">
+      <h2>Hubs</h2>
+      <div id="chart-betweenness"></div>
+    </section>
+
+    <section id="slide-indegree">
+      <h2>Most Referenced</h2>
+      <div id="chart-indegree"></div>
+    </section>
+
+    <section id="slide-outdegree">
+      <h2>Most Connected</h2>
+      <div id="chart-outdegree"></div>
+    </section>
+
+    <section id="slide-pathfinder">
+      <h2>Find Your Path</h2>
+      <div id="pathfinder-ui">
+        <input id="input-from" type="text" placeholder="From city...">
+        <span>→</span>
+        <input id="input-to" type="text" placeholder="To city...">
+        <button id="btn-find">Go</button>
+        <div id="path-result"></div>
+      </div>
+      <div id="map-path"></div>
+    </section>
+
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="js/map.js"></script>
+<script src="js/pathfinder.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

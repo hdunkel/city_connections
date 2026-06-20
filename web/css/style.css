@@ -1,0 +1,63 @@
+/* web/css/style.css */
+:root {
+  --bg:      #0f1117;
+  --surface: #1a1d2e;
+  --accent:  #4f8ef7;
+  --gold:    #f7c04f;
+  --text:    #e8eaf0;
+  --muted:   #6b7280;
+}
+
+html, body { background: var(--bg); }
+
+.reveal {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.reveal h1 { font-size: 2.6em; letter-spacing: -0.03em; }
+.reveal h2 { font-size: 1.7em; color: var(--accent); letter-spacing: -0.01em; }
+.reveal p  { font-size: 0.95em; }
+.reveal .subtitle { color: var(--muted); margin-top: 0.4em; }
+.reveal .muted    { color: var(--muted); font-size: 0.85em; }
+
+#map-overview, #map-diameter, #map-path {
+  width: 100%; height: 400px; margin-top: 0.8em;
+}
+
+#pathfinder-ui {
+  display: flex; align-items: center; gap: 0.6em;
+  flex-wrap: wrap; margin-bottom: 0.8em;
+}
+
+#pathfinder-ui input {
+  background: var(--surface);
+  border: 1px solid var(--muted);
+  color: var(--text);
+  padding: 0.35em 0.7em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  width: 200px;
+}
+
+#pathfinder-ui button {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 0.35em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+#path-result {
+  width: 100%;
+  color: var(--gold);
+  font-size: 0.8em;
+  word-break: break-word;
+}
+
+.bar-label { fill: var(--text); font-size: 11px; }
+.bar-rect  { fill: var(--accent); }
