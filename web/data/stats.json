@@ -1,1 +1,336 @@
-{"node_count": 1, "edge_count": 0, "wcc_count": 1, "largest_wcc_size": 1, "scc_count": 1, "largest_scc_size": 1, "diameter_path": ["Q64"], "diameter_length": 0, "top_betweenness": [{"id": "Q64", "name": "Berlin", "score": 0.0}], "top_in_degree": [{"id": "Q64", "name": "Berlin", "count": 0}], "top_out_degree": [{"id": "Q64", "name": "Berlin", "count": 0}]}
+{
+  "node_count": 4804,
+  "edge_count": 25731,
+  "wcc_count": 198,
+  "largest_wcc_size": 4603,
+  "scc_count": 2771,
+  "largest_scc_size": 2001,
+  "diameter_path": [
+    "Q31971295",
+    "Q264395",
+    "Q15980",
+    "Q257018",
+    "Q133503095",
+    "Q506523",
+    "Q625743",
+    "Q64",
+    "Q14808",
+    "Q4065",
+    "Q161943",
+    "Q643857",
+    "Q562450",
+    "Q446870",
+    "Q3117",
+    "Q245542",
+    "Q11047",
+    "Q11046",
+    "Q369649"
+  ],
+  "diameter_length": 18,
+  "top_betweenness": [
+    {
+      "id": "Q24879",
+      "name": "Bremen",
+      "score": 0.065237
+    },
+    {
+      "id": "Q1731",
+      "name": "Dresden",
+      "score": 0.060269
+    },
+    {
+      "id": "Q64",
+      "name": "Berlin",
+      "score": 0.052894
+    },
+    {
+      "id": "Q1205",
+      "name": "Thüringen",
+      "score": 0.034326
+    },
+    {
+      "id": "Q14808",
+      "name": "Oranienburg",
+      "score": 0.029133
+    },
+    {
+      "id": "Q313189",
+      "name": "Schöneberg",
+      "score": 0.028363
+    },
+    {
+      "id": "Q715",
+      "name": "Heilbronn",
+      "score": 0.019628
+    },
+    {
+      "id": "Q1733",
+      "name": "Magdeburg",
+      "score": 0.019267
+    },
+    {
+      "id": "Q365",
+      "name": "Köln",
+      "score": 0.01393
+    },
+    {
+      "id": "Q2865",
+      "name": "Kassel",
+      "score": 0.011927
+    },
+    {
+      "id": "Q2773",
+      "name": "Braunschweig",
+      "score": 0.011477
+    },
+    {
+      "id": "Q2090",
+      "name": "Nürnberg",
+      "score": 0.010758
+    },
+    {
+      "id": "Q3104",
+      "name": "Koblenz",
+      "score": 0.010673
+    },
+    {
+      "id": "Q1879617",
+      "name": "Löbtau",
+      "score": 0.010449
+    },
+    {
+      "id": "Q2936",
+      "name": "Oldenburg",
+      "score": 0.010352
+    },
+    {
+      "id": "Q4077",
+      "name": "Görlitz",
+      "score": 0.009397
+    },
+    {
+      "id": "Q2978",
+      "name": "Regensburg",
+      "score": 0.009241
+    },
+    {
+      "id": "Q7040",
+      "name": "Homburg",
+      "score": 0.009137
+    },
+    {
+      "id": "Q622",
+      "name": "Ludwigsburg",
+      "score": 0.008748
+    },
+    {
+      "id": "Q1729",
+      "name": "Erfurt",
+      "score": 0.008653
+    }
+  ],
+  "top_in_degree": [
+    {
+      "id": "Q64",
+      "name": "Berlin",
+      "count": 943
+    },
+    {
+      "id": "Q2079",
+      "name": "Leipzig",
+      "count": 471
+    },
+    {
+      "id": "Q1731",
+      "name": "Dresden",
+      "count": 460
+    },
+    {
+      "id": "Q542659",
+      "name": "Karlsbad",
+      "count": 255
+    },
+    {
+      "id": "Q1208",
+      "name": "Brandenburg",
+      "count": 254
+    },
+    {
+      "id": "Q1726",
+      "name": "München",
+      "count": 239
+    },
+    {
+      "id": "Q1729",
+      "name": "Erfurt",
+      "count": 219
+    },
+    {
+      "id": "Q1733",
+      "name": "Magdeburg",
+      "count": 209
+    },
+    {
+      "id": "Q1205",
+      "name": "Thüringen",
+      "count": 205
+    },
+    {
+      "id": "Q4077",
+      "name": "Görlitz",
+      "count": 200
+    },
+    {
+      "id": "Q2861",
+      "name": "Rostock",
+      "count": 184
+    },
+    {
+      "id": "Q24879",
+      "name": "Bremen",
+      "count": 181
+    },
+    {
+      "id": "Q1711",
+      "name": "Potsdam",
+      "count": 175
+    },
+    {
+      "id": "Q365",
+      "name": "Köln",
+      "count": 170
+    },
+    {
+      "id": "Q1055",
+      "name": "Hamburg",
+      "count": 168
+    },
+    {
+      "id": "Q1022",
+      "name": "Stuttgart",
+      "count": 164
+    },
+    {
+      "id": "Q3955",
+      "name": "Weimar",
+      "count": 151
+    },
+    {
+      "id": "Q1720",
+      "name": "Mainz",
+      "count": 144
+    },
+    {
+      "id": "Q2795",
+      "name": "Chemnitz",
+      "count": 139
+    },
+    {
+      "id": "Q4065",
+      "name": "Stralsund",
+      "count": 109
+    }
+  ],
+  "top_out_degree": [
+    {
+      "id": "Q24879",
+      "name": "Bremen",
+      "count": 120
+    },
+    {
+      "id": "Q446870",
+      "name": "Kalk",
+      "count": 86
+    },
+    {
+      "id": "Q1008023",
+      "name": "Bundestagswahlkreis Bremen I",
+      "count": 79
+    },
+    {
+      "id": "Q22958",
+      "name": "Ilvesheim",
+      "count": 63
+    },
+    {
+      "id": "Q1008474",
+      "name": "Bundestagswahlkreis Nürnberg-Nord",
+      "count": 56
+    },
+    {
+      "id": "Q14842",
+      "name": "Falkensee",
+      "count": 54
+    },
+    {
+      "id": "Q630083",
+      "name": "Brackwede",
+      "count": 52
+    },
+    {
+      "id": "Q14808",
+      "name": "Oranienburg",
+      "count": 50
+    },
+    {
+      "id": "Q1205",
+      "name": "Thüringen",
+      "count": 47
+    },
+    {
+      "id": "Q1733",
+      "name": "Magdeburg",
+      "count": 45
+    },
+    {
+      "id": "Q16125",
+      "name": "Weyhe",
+      "count": 44
+    },
+    {
+      "id": "Q1879617",
+      "name": "Löbtau",
+      "count": 44
+    },
+    {
+      "id": "Q3907",
+      "name": "Delmenhorst",
+      "count": 42
+    },
+    {
+      "id": "Q5657",
+      "name": "Bilderstöckchen",
+      "count": 40
+    },
+    {
+      "id": "Q1731",
+      "name": "Dresden",
+      "count": 39
+    },
+    {
+      "id": "Q7053",
+      "name": "Rodgau",
+      "count": 38
+    },
+    {
+      "id": "Q8775",
+      "name": "Riesa",
+      "count": 38
+    },
+    {
+      "id": "Q715",
+      "name": "Heilbronn",
+      "count": 37
+    },
+    {
+      "id": "Q3104",
+      "name": "Koblenz",
+      "count": 37
+    },
+    {
+      "id": "Q96887954",
+      "name": "Neulindenau",
+      "count": 37
+    }
+  ]
+}

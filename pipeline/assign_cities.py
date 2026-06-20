@@ -36,7 +36,7 @@ def run(
     result = assign_nearest_city(streets, cities)
     result.to_csv(output_path, index=False)
     assigned = (result["city_id"] != "").sum()
-    print(f"Assigned {assigned:,}/{len(result):,} streets → {output_path}")
+    print(f"Assigned {assigned:,}/{len(result):,} streets -> {output_path}")
     return result
 
 
