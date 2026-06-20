@@ -35,6 +35,7 @@ function populateStats() {
 }
 
 function renderBarChart(selector, data, labelFn, valueFn) {
+  if (!data || data.length === 0) return;
   const el = document.querySelector(selector);
   if (!el) return;
   const W = el.clientWidth || 720, H = 280;
@@ -59,4 +60,4 @@ loadData().then(() => {
   initMap(graphData);
   populateStats();
   initPathfinder(graphData);
-});
+}).catch(err => console.error('Data load failed:', err));
