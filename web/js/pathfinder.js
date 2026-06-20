@@ -31,11 +31,12 @@ function attachAutocomplete(input, names) {
   input.parentNode.appendChild(dl);
   input.addEventListener('input', () => {
     const val = input.value.toLowerCase();
-    dl.innerHTML = names
-      .filter(n => n.toLowerCase().startsWith(val))
-      .slice(0, 10)
-      .map(n => `<option value="${n}">`)
-      .join('');
+    const matches = names.filter(n => n.toLowerCase().startsWith(val)).slice(0, 10);
+    dl.replaceChildren(...matches.map(n => {
+      const o = document.createElement('option');
+      o.value = n;
+      return o;
+    }));
   });
 }
 

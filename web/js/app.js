@@ -22,8 +22,14 @@ function populateStats() {
 
   const byId = Object.fromEntries(graphData.nodes.map(n => [n.id, n.name]));
   const pathNames = statsData.diameter_path.map(id => byId[id] ?? id).join(' → ');
-  document.getElementById('stat-diameter').innerHTML =
-    `<p>${statsData.diameter_length} hops</p><p class="muted">${pathNames}</p>`;
+  const diameterEl = document.getElementById('stat-diameter');
+  diameterEl.replaceChildren();
+  const hopsP = document.createElement('p');
+  hopsP.textContent = `${statsData.diameter_length} hops`;
+  const namesP = document.createElement('p');
+  namesP.className = 'muted';
+  namesP.textContent = pathNames;
+  diameterEl.append(hopsP, namesP);
   renderDiameterMap(graphData, statsData.diameter_path);
 
   renderBarChart('#chart-betweenness', statsData.top_betweenness.slice(0, 10),
