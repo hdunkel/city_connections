@@ -7,7 +7,8 @@ WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql"
 SPARQL_QUERY = """
 SELECT DISTINCT ?city ?cityLabel ?population ?lat ?lon WHERE {
   ?city wdt:P17 wd:Q183 ;
-        wdt:P1082 ?population .
+        wdt:P1082 ?population ;
+        wdt:P31/wdt:P279* wd:Q262166 .
   ?city p:P625 ?coordStatement .
   ?coordStatement psv:P625 ?coordValue .
   ?coordValue wikibase:geoLatitude ?lat .
