@@ -44,15 +44,20 @@ function renderBarChart(selector, data, labelFn, valueFn) {
   if (!data || data.length === 0) return;
   const el = document.querySelector(selector);
   if (!el) return;
-  const W = el.clientWidth || 720, H = 280;
-  const m = { top: 8, right: 16, bottom: 24, left: 130 };
+  const W = el.clientWidth || 800, H = 320;
+  // Measure longest label to set left margin dynamically
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = '11px sans-serif';
+  const maxLabelW = Math.ceil(Math.max(...data.map(d => ctx.measureText(labelFn(d)).width))) + 12;
+  const m = { top: 8, right: 20, bottom: 8, left: Math.max(140, maxLabelW) };
   const svg = d3.select(selector).append('svg').attr('width', W).attr('height', H);
   const x = d3.scaleLinear().domain([0, d3.max(data, valueFn)]).range([m.left, W - m.right]);
   const y = d3.scaleBand().domain(data.map(labelFn)).range([m.top, H - m.bottom]).padding(0.22);
   svg.selectAll('rect').data(data).join('rect')
     .attr('class', 'bar-rect')
     .attr('x', m.left).attr('y', d => y(labelFn(d)))
-    .attr('width', d => x(valueFn(d)) - m.left)
+    .attr('width', d => Math.max(0, x(valueFn(d)) - m.left))
     .attr('height', y.bandwidth());
   svg.selectAll('.lbl').data(data).join('text')
     .attr('class', 'bar-label')

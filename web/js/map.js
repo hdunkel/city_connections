@@ -105,8 +105,10 @@ function renderDiameterMap(graphData, pathIds) {
     const [x, y] = proj([n.lon, n.lat]);
     svg.append('circle').attr('cx', x).attr('cy', y).attr('r', 5)
       .attr('fill', '#f7c04f');
-    svg.append('text').attr('x', x + 8).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '11px')
+    // Alternate label above/below to reduce overlap on clustered stops
+    const dy = i % 2 === 0 ? -8 : 14;
+    svg.append('text').attr('x', x + 6).attr('y', y + dy)
+      .attr('fill', '#e8eaf0').attr('font-size', '10px')
       .text(`${i + 1}. ${n.name}`);
   });
 }
