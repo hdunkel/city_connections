@@ -22,26 +22,56 @@ html, body { background: var(--bg); }
 .reveal .subtitle { color: var(--muted); margin-top: 0.4em; }
 .reveal .muted    { color: var(--muted); font-size: 0.85em; }
 
-#map-overview, #map-diameter, #map-path {
-  width: 100%; height: 400px; margin-top: 0.8em;
+/* Footnotes — below slide content */
+.reveal .footnote {
+  font-size: 0.62em;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: left;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 6px;
+  margin-top: 1em;
 }
 
-#pathfinder-ui {
-  display: flex; align-items: center; gap: 0.6em;
-  flex-wrap: wrap; margin-bottom: 0.8em;
+/* Maps */
+#map-overview, #map-diameter, #map-path, #map-disconnected {
+  width: 100%; height: 400px; margin-top: 0.6em;
 }
 
-#pathfinder-ui input {
+#map-overview svg, #map-path svg, #map-diameter svg, #map-disconnected svg {
+  cursor: grab;
+}
+#map-overview svg:active, #map-path svg:active, #map-diameter svg:active, #map-disconnected svg:active {
+  cursor: grabbing;
+}
+
+.map-hint {
+  font-size: 0.6em;
+  color: var(--muted);
+  text-align: center;
+  margin: 2px 0 0;
+  opacity: 0.7;
+}
+
+/* Shared input style */
+.reveal input[type="text"] {
   background: var(--surface);
   border: 1px solid var(--muted);
   color: var(--text);
   padding: 0.35em 0.7em;
   border-radius: 4px;
   font-size: 0.85em;
-  width: 200px;
 }
 
-#pathfinder-ui button {
+/* Pathfinder */
+#pathfinder-ui {
+  display: flex; align-items: center; gap: 0.6em;
+  flex-wrap: wrap; margin-bottom: 0.8em;
+}
+
+#pathfinder-ui input { width: 200px; }
+
+#btn-find {
   background: var(--accent);
   color: var(--bg);
   border: none;
@@ -52,6 +82,22 @@ html, body { background: var(--bg); }
   font-size: 0.85em;
 }
 
+/* Example buttons (secondary style) */
+.btn-example {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--muted);
+  padding: 0.35em 0.9em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 400;
+}
+.btn-example:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 #path-result {
   width: 100%;
   color: var(--gold);
@@ -59,8 +105,12 @@ html, body { background: var(--bg); }
   word-break: break-word;
 }
 
+/* Bar charts */
 .bar-label { fill: var(--text); font-size: 11px; }
 .bar-rect  { fill: var(--accent); }
+.bar-val   { fill: var(--muted); font-size: 10px; }
+.x-axis text { fill: var(--muted); font-size: 10px; }
+.x-axis path, .x-axis line { stroke: var(--muted); opacity: 0.3; }
 
 /* Path result */
 .path-summary { color: var(--text); margin: 0 0 0.4em; font-size: 0.9em; }
@@ -75,8 +125,13 @@ a.street-link {
 a.street-link:hover { text-decoration: underline; }
 
 /* Explorer */
-#explorer-ui { margin-bottom: 0.6em; }
+#explorer-ui {
+  display: flex; align-items: center; gap: 0.6em;
+  margin-bottom: 0.8em;
+}
 #explorer-ui input { width: 260px; }
+
+#explorer-result { min-height: 420px; }
 
 .explorer-header {
   font-size: 0.78em;
@@ -90,6 +145,15 @@ a.street-link:hover { text-decoration: underline; }
   gap: 1.5em;
   max-height: 380px;
   overflow-y: auto;
+  padding-right: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+.explorer-grid::-webkit-scrollbar { width: 5px; }
+.explorer-grid::-webkit-scrollbar-track { background: transparent; }
+.explorer-grid::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
 }
 
 .explorer-grid h4 {
@@ -112,3 +176,36 @@ a.street-link:hover { text-decoration: underline; }
 }
 
 .explorer-city-name { color: var(--text); }
+
+/* Mobile nav buttons */
+#nav-controls {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 2000;
+}
+
+#nav-controls button {
+  background: rgba(26, 29, 46, 0.85);
+  color: var(--text);
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4em;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s, border-color 0.15s;
+}
+#nav-controls button:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}

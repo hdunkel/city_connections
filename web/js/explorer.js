@@ -31,6 +31,14 @@ function initExplorer(graphData) {
     }));
   });
 
+  const exBtn = document.getElementById('btn-example-explorer');
+  if (exBtn) {
+    exBtn.addEventListener('click', () => {
+      input.value = 'Berlin';
+      input.dispatchEvent(new Event('change'));
+    });
+  }
+
   input.addEventListener('change', () => {
     const id = nameToId[input.value];
     if (!id) { container.replaceChildren(); return; }

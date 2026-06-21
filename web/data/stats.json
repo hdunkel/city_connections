@@ -326,5 +326,17 @@
       "name": "Oranienburg",
       "count": 55
     }
+  ],
+  "largest_disconnected": [
+    {
+      "id": "Q64",
+      "name": "Berlin",
+      "population": 3782202
+    },
+    {
+      "id": "Q522362",
+      "name": "Bad Säckingen",
+      "population": 17637
+    }
   ]
 }

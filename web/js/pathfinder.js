@@ -66,6 +66,15 @@ function initPathfinder(graphData) {
   attachAutocomplete(inputFrom);
   attachAutocomplete(inputTo);
 
+  const exBtn = document.getElementById('btn-example-path');
+  if (exBtn) {
+    exBtn.addEventListener('click', () => {
+      inputFrom.value = 'Hamburg';
+      inputTo.value = 'Berlin';
+      btn.click();
+    });
+  }
+
   btn.addEventListener('click', () => {
     const fromId = nameToId[inputFrom.value];
     const toId   = nameToId[inputTo.value];

@@ -1,4 +1,6 @@
 data/*.osm.pbf
+data/graph.json
+data/stats.json
 data/node_cache*
 data/cities.csv
 data/streets.csv

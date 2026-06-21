@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>City Connections</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
   <link rel="stylesheet" href="css/style.css">
@@ -20,6 +21,7 @@
       <p>You can travel from <strong>A</strong> to <strong>B</strong><br>
          if city A has a street named <em>"B-er Straße"</em></p>
       <p class="muted">Example: Lüneburg → Greifswald via <em>Greifswalder Straße</em></p>
+      <p class="footnote">"City" means any of the 3,015 German municipalities (<em>Gemeinden</em>) listed in Wikidata. Streets are matched from OpenStreetMap.</p>
     </section>
 
     <section id="slide-pathfinder">
@@ -29,6 +31,7 @@
         <span>→</span>
         <input id="input-to" type="text" placeholder="To city…">
         <button id="btn-find">Go</button>
+        <button id="btn-example-path" class="btn-example">Try an example</button>
       </div>
       <div id="path-result"></div>
       <div id="map-path"></div>
@@ -38,6 +41,7 @@
       <h2>City Explorer</h2>
       <div id="explorer-ui">
         <input id="explorer-input" type="text" placeholder="Enter a city…">
+        <button id="btn-example-explorer" class="btn-example">Try an example</button>
       </div>
       <div id="explorer-result"></div>
     </section>
@@ -52,31 +56,70 @@
     <section id="slide-connected">
       <h2>Connected?</h2>
       <div id="stat-connectivity"></div>
+      <p class="footnote">
+        A <strong>weakly connected component</strong> groups cities you can reach by ignoring
+        edge direction. A <strong>strongly connected component</strong> requires mutual reachability —
+        a path exists in both directions between every pair of cities in the group.
+      </p>
+    </section>
+
+    <section id="slide-disconnected">
+      <h2>Islands</h2>
+      <div id="stat-disconnected"></div>
+      <div id="map-disconnected"></div>
+      <p class="footnote">
+        Cities in different weakly connected components share no street-name path in either direction.
+        Of 3,015 municipalities, 21 form isolated islands outside the main network.
+      </p>
     </section>
 
     <section id="slide-diameter">
       <h2>The Longest Road</h2>
       <div id="stat-diameter"></div>
       <div id="map-diameter"></div>
+      <p class="footnote">
+        The <strong>diameter</strong> is the longest of all shortest paths in the main connected component.
+        It tells you the worst-case number of hops between any two reachable cities.
+      </p>
     </section>
 
     <section id="slide-betweenness">
       <h2>Hubs</h2>
       <div id="chart-betweenness"></div>
+      <p class="footnote">
+        <strong>Betweenness centrality</strong> (0–1) measures how often a city lies on the shortest path
+        between two other cities. A high score means the city is a critical transit point — removing it
+        would disconnect many routes.
+      </p>
     </section>
 
     <section id="slide-indegree">
       <h2>Most Referenced</h2>
       <div id="chart-indegree"></div>
+      <p class="footnote">
+        <strong>In-degree</strong>: how many other German cities have a street named after this city
+        (e.g. "Berliner Straße"). A high in-degree means the city is culturally prominent across Germany.
+      </p>
     </section>
 
     <section id="slide-outdegree">
       <h2>Most Connected</h2>
       <div id="chart-outdegree"></div>
+      <p class="footnote">
+        <strong>Out-degree</strong>: how many different cities this city has streets named after.
+        Cities with high out-degree tend to be suburban or near major hubs, with many streets
+        named after neighbouring towns.
+      </p>
     </section>
 
   </div>
 </div>
+
+<div id="nav-controls">
+  <button id="nav-prev" aria-label="Previous slide">&#8249;</button>
+  <button id="nav-next" aria-label="Next slide">&#8250;</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="js/map.js"></script>

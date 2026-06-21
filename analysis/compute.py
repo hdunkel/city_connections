@@ -51,6 +51,16 @@ def compute_stats(G: nx.DiGraph, cities: pd.DataFrame) -> dict:
         return [{"id": k, "name": id_to_name.get(k, k), "count": v}
                 for k, v in sorted(d.items(), key=lambda x: -x[1])[:20]]
 
+    # Two largest cities with no path between them (different WCCs)
+    wcc_map = {n: i for i, comp in enumerate(wccs) for n in comp}
+    by_pop = sorted(G.nodes(), key=lambda n: G.nodes[n].get("population", 0), reverse=True)
+    first = by_pop[0]
+    second = next(n for n in by_pop[1:] if wcc_map[n] != wcc_map[first])
+    largest_disconnected = [
+        {"id": first,  "name": G.nodes[first]["name"],  "population": G.nodes[first]["population"]},
+        {"id": second, "name": G.nodes[second]["name"], "population": G.nodes[second]["population"]},
+    ]
+
     return {
         "node_count": G.number_of_nodes(),
         "edge_count": G.number_of_edges(),
@@ -63,6 +73,7 @@ def compute_stats(G: nx.DiGraph, cities: pd.DataFrame) -> dict:
         "top_betweenness": top20_score(betweenness),
         "top_in_degree": top20_count(in_deg),
         "top_out_degree": top20_count(out_deg),
+        "largest_disconnected": largest_disconnected,
     }
 
 
