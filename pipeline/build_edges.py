@@ -36,8 +36,18 @@ def extract_edges(streets: pd.DataFrame, cities: pd.DataFrame) -> pd.DataFrame:
             if len(targets) == 1
             else _nearest_from_candidates(row["lat"], row["lon"], targets, cities)
         )
-        edges.append({"source_id": source_id, "target_id": target_id})
-    return pd.DataFrame(edges).drop_duplicates() if edges else pd.DataFrame(columns=["source_id", "target_id"])
+        edges.append({
+            "source_id": source_id,
+            "target_id": target_id,
+            "street_name": str(row["name"]),
+            "street_lat": round(float(row["lat"]), 5),
+            "street_lon": round(float(row["lon"]), 5),
+        })
+    cols = ["source_id", "target_id", "street_name", "street_lat", "street_lon"]
+    return (
+        pd.DataFrame(edges).drop_duplicates(subset=["source_id", "target_id"])
+        if edges else pd.DataFrame(columns=cols)
+    )
 
 
 def run(

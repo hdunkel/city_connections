@@ -61,3 +61,54 @@ html, body { background: var(--bg); }
 
 .bar-label { fill: var(--text); font-size: 11px; }
 .bar-rect  { fill: var(--accent); }
+
+/* Path result */
+.path-summary { color: var(--text); margin: 0 0 0.4em; font-size: 0.9em; }
+.path-step    { font-size: 0.78em; color: var(--muted); margin: 0.15em 0; }
+
+/* OSM street links */
+a.street-link {
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 0.9em;
+}
+a.street-link:hover { text-decoration: underline; }
+
+/* Explorer */
+#explorer-ui { margin-bottom: 0.6em; }
+#explorer-ui input { width: 260px; }
+
+.explorer-header {
+  font-size: 0.78em;
+  color: var(--muted);
+  margin: 0 0 0.5em;
+}
+
+.explorer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5em;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.explorer-grid h4 {
+  color: var(--accent);
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.35em;
+}
+
+.explorer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.18em 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.76em;
+  gap: 0.5em;
+}
+
+.explorer-city-name { color: var(--text); }

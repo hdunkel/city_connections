@@ -1,18 +1,11 @@
-// web/js/pathfinder.js
-
-function bfs(edges, sourceId, targetId) {
+function bfs(adj, sourceId, targetId) {
   if (sourceId === targetId) return [sourceId];
-  const adj = {};
-  for (const { source, target } of edges) {
-    if (!adj[source]) adj[source] = [];
-    adj[source].push(target);
-  }
   const visited = new Set([sourceId]);
   const queue = [[sourceId]];
   while (queue.length) {
     const path = queue.shift();
     const node = path[path.length - 1];
-    for (const nbr of (adj[node] ?? [])) {
+    for (const nbr of (adj.get(node) ?? [])) {
       if (nbr === targetId) return [...path, nbr];
       if (!visited.has(nbr)) {
         visited.add(nbr);
@@ -23,21 +16,14 @@ function bfs(edges, sourceId, targetId) {
   return null;
 }
 
-function attachAutocomplete(input, names) {
-  const listId = input.id + '-list';
-  const dl = document.createElement('datalist');
-  dl.id = listId;
-  input.setAttribute('list', listId);
-  input.parentNode.appendChild(dl);
-  input.addEventListener('input', () => {
-    const val = input.value.toLowerCase();
-    const matches = names.filter(n => n.toLowerCase().startsWith(val)).slice(0, 10);
-    dl.replaceChildren(...matches.map(n => {
-      const o = document.createElement('option');
-      o.value = n;
-      return o;
-    }));
-  });
+function osmLink(street, lat, lon) {
+  const a = document.createElement('a');
+  a.href = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.className = 'street-link';
+  a.textContent = street;
+  return a;
 }
 
 function initPathfinder(graphData) {
@@ -45,28 +31,79 @@ function initPathfinder(graphData) {
   const nameToId  = Object.fromEntries(graphData.nodes.map(n => [n.name, n.id]));
   const idToName  = Object.fromEntries(graphData.nodes.map(n => [n.id,   n.name]));
 
+  // Adjacency list and edge lookup
+  const adj = new Map();
+  const edgeLookup = {};
+  for (const e of graphData.edges) {
+    if (!adj.has(e.source)) adj.set(e.source, []);
+    adj.get(e.source).push(e.target);
+    if (!edgeLookup[e.source]) edgeLookup[e.source] = {};
+    edgeLookup[e.source][e.target] = e;
+  }
+
   const inputFrom = document.getElementById('input-from');
   const inputTo   = document.getElementById('input-to');
   const btn       = document.getElementById('btn-find');
   const result    = document.getElementById('path-result');
 
-  attachAutocomplete(inputFrom, nodeNames);
-  attachAutocomplete(inputTo,   nodeNames);
+  function attachAutocomplete(input) {
+    const listId = input.id + '-list';
+    const dl = document.createElement('datalist');
+    dl.id = listId;
+    input.setAttribute('list', listId);
+    input.parentNode.appendChild(dl);
+    input.addEventListener('input', () => {
+      const val = input.value.toLowerCase();
+      const matches = nodeNames.filter(n => n.toLowerCase().startsWith(val)).slice(0, 10);
+      dl.replaceChildren(...matches.map(n => {
+        const o = document.createElement('option');
+        o.value = n;
+        return o;
+      }));
+    });
+  }
+
+  attachAutocomplete(inputFrom);
+  attachAutocomplete(inputTo);
 
   btn.addEventListener('click', () => {
     const fromId = nameToId[inputFrom.value];
     const toId   = nameToId[inputTo.value];
+    result.replaceChildren();
+
     if (!fromId || !toId) {
       result.textContent = 'City not found — check spelling.';
       return;
     }
-    const path = bfs(graphData.edges, fromId, toId);
+
+    const path = bfs(adj, fromId, toId);
     if (!path) {
       result.textContent = 'No path found between these cities.';
       d3.select('#map-path svg').remove();
       return;
     }
-    result.textContent = path.map(id => idToName[id]).join(' → ');
+
+    // Summary line
+    const summary = document.createElement('p');
+    summary.className = 'path-summary';
+    summary.textContent = path.map(id => idToName[id]).join(' → ');
+    result.appendChild(summary);
+
+    // Per-hop detail with street name + OSM link
+    for (let i = 0; i < path.length - 1; i++) {
+      const e = edgeLookup[path[i]]?.[path[i + 1]];
+      if (!e) continue;
+      const div = document.createElement('div');
+      div.className = 'path-step';
+      const from = document.createElement('span');
+      from.textContent = idToName[path[i]];
+      const to = document.createElement('span');
+      to.textContent = idToName[path[i + 1]];
+      div.append(from, document.createTextNode(' → '), to,
+                 document.createTextNode(' via '), osmLink(e.street, e.lat, e.lon));
+      result.appendChild(div);
+    }
+
     highlightPath(graphData, path);
   });
 }

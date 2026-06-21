@@ -66,4 +66,5 @@ loadData().then(() => {
   initMap(graphData);
   populateStats();
   initPathfinder(graphData);
+  initExplorer(graphData);
 }).catch(err => console.error('Data load failed:', err));

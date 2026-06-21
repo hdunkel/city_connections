@@ -14,7 +14,10 @@ def build_graph(cities: pd.DataFrame, edges: pd.DataFrame) -> nx.DiGraph:
     for _, row in edges.iterrows():
         s, t = str(row["source_id"]), str(row["target_id"])
         if s in valid_ids and t in valid_ids:
-            G.add_edge(s, t)
+            G.add_edge(s, t,
+                       street=str(row.get("street_name", "")),
+                       lat=row.get("street_lat"),
+                       lon=row.get("street_lon"))
     return G
 
 
@@ -66,7 +69,13 @@ def compute_stats(G: nx.DiGraph, cities: pd.DataFrame) -> dict:
 def export_graph_json(G: nx.DiGraph, output_path: str = "data/graph.json"):
     data = {
         "nodes": [{"id": n, **G.nodes[n]} for n in G.nodes()],
-        "edges": [{"source": u, "target": v} for u, v in G.edges()],
+        "edges": [
+            {"source": u, "target": v,
+             "street": G.edges[u, v].get("street", ""),
+             "lat": G.edges[u, v].get("lat"),
+             "lon": G.edges[u, v].get("lon")}
+            for u, v in G.edges()
+        ],
     }
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
