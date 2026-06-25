@@ -1,7 +1,11 @@
 function initExplorer(graphData) {
   const nodeById    = Object.fromEntries(graphData.nodes.map(n => [n.id, n]));
   const nodeNames   = graphData.nodes.map(n => n.name).sort();
-  const nameToIdLow = Object.fromEntries(graphData.nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const nameToIdLow = {};
+  for (const n of graphData.nodes) {
+    const key = n.name.toLowerCase();
+    if (!(key in nameToIdLow)) nameToIdLow[key] = n.id;
+  }
   const nameToId    = v => nameToIdLow[v.trim().toLowerCase()];
 
   // Index edges by target (incoming) and source (outgoing)

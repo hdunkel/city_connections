@@ -28,7 +28,11 @@ function osmLink(street, lat, lon) {
 
 function initPathfinder(graphData) {
   const nodeNames    = graphData.nodes.map(n => n.name);
-  const nameToIdLow  = Object.fromEntries(graphData.nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const nameToIdLow = {};
+  for (const n of graphData.nodes) {
+    const key = n.name.toLowerCase();
+    if (!(key in nameToIdLow)) nameToIdLow[key] = n.id;
+  }
   const idToName     = Object.fromEntries(graphData.nodes.map(n => [n.id, n.name]));
   const nameToId     = v => nameToIdLow[v.trim().toLowerCase()];
 
