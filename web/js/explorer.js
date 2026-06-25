@@ -40,7 +40,7 @@ function initExplorer(graphData) {
     });
   }
 
-  input.addEventListener('change', () => {
+  function explore() {
     const id = nameToId(input.value);
     if (!id) {
       container.replaceChildren();
@@ -55,7 +55,10 @@ function initExplorer(graphData) {
     }
     const node = nodeById[id];
     renderExplorer(graphData, node, incoming[id] ?? [], outgoing[id] ?? [], nodeById, container);
-  });
+  }
+
+  input.addEventListener('change', explore);
+  document.getElementById('btn-explore').addEventListener('click', explore);
 }
 
 function _osmLink(street, lat, lon) {
