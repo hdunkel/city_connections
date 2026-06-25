@@ -27,9 +27,10 @@ function osmLink(street, lat, lon) {
 }
 
 function initPathfinder(graphData) {
-  const nodeNames = graphData.nodes.map(n => n.name);
-  const nameToId  = Object.fromEntries(graphData.nodes.map(n => [n.name, n.id]));
-  const idToName  = Object.fromEntries(graphData.nodes.map(n => [n.id,   n.name]));
+  const nodeNames    = graphData.nodes.map(n => n.name);
+  const nameToIdLow  = Object.fromEntries(graphData.nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const idToName     = Object.fromEntries(graphData.nodes.map(n => [n.id, n.name]));
+  const nameToId     = v => nameToIdLow[v.trim().toLowerCase()];
 
   // Adjacency list and edge lookup
   const adj = new Map();
@@ -76,8 +77,8 @@ function initPathfinder(graphData) {
   }
 
   btn.addEventListener('click', () => {
-    const fromId = nameToId[inputFrom.value];
-    const toId   = nameToId[inputTo.value];
+    const fromId = nameToId(inputFrom.value);
+    const toId   = nameToId(inputTo.value);
     result.replaceChildren();
 
     if (!fromId || !toId) {

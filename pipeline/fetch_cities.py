@@ -7,13 +7,12 @@ WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql"
 SPARQL_QUERY = """
 SELECT DISTINCT ?city ?cityLabel ?population ?lat ?lon WHERE {
   ?city wdt:P17 wd:Q183 ;
-        wdt:P1082 ?population ;
-        wdt:P31/wdt:P279* wd:Q262166 .
+        wdt:P439 ?ags .
   ?city p:P625 ?coordStatement .
   ?coordStatement psv:P625 ?coordValue .
   ?coordValue wikibase:geoLatitude ?lat .
   ?coordValue wikibase:geoLongitude ?lon .
-  FILTER(?population > 5000)
+  OPTIONAL { ?city wdt:P1082 ?population }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "de" . }
 }
 ORDER BY DESC(?population)
@@ -37,7 +36,7 @@ def parse_wikidata_results(raw: dict) -> pd.DataFrame:
         rows.append({
             "id": wikidata_id,
             "name": binding["cityLabel"]["value"],
-            "population": int(binding["population"]["value"]),
+            "population": int(binding["population"]["value"]) if "population" in binding else 0,
             "lat": float(binding["lat"]["value"]),
             "lon": float(binding["lon"]["value"]),
         })

@@ -1,7 +1,8 @@
 function initExplorer(graphData) {
-  const nodeById  = Object.fromEntries(graphData.nodes.map(n => [n.id, n]));
-  const nodeNames = graphData.nodes.map(n => n.name).sort();
-  const nameToId  = Object.fromEntries(graphData.nodes.map(n => [n.name, n.id]));
+  const nodeById    = Object.fromEntries(graphData.nodes.map(n => [n.id, n]));
+  const nodeNames   = graphData.nodes.map(n => n.name).sort();
+  const nameToIdLow = Object.fromEntries(graphData.nodes.map(n => [n.name.toLowerCase(), n.id]));
+  const nameToId    = v => nameToIdLow[v.trim().toLowerCase()];
 
   // Index edges by target (incoming) and source (outgoing)
   const incoming = {};
@@ -40,10 +41,10 @@ function initExplorer(graphData) {
   }
 
   input.addEventListener('change', () => {
-    const id = nameToId[input.value];
+    const id = nameToId(input.value);
     if (!id) { container.replaceChildren(); return; }
     const node = nodeById[id];
-    renderExplorer(node, incoming[id] ?? [], outgoing[id] ?? [], nodeById, container);
+    renderExplorer(graphData, node, incoming[id] ?? [], outgoing[id] ?? [], nodeById, container);
   });
 }
 
@@ -57,7 +58,7 @@ function _osmLink(street, lat, lon) {
   return a;
 }
 
-function renderExplorer(node, inEdges, outEdges, nodeById, container) {
+function renderExplorer(graphData, node, inEdges, outEdges, nodeById, container) {
   container.replaceChildren();
 
   const header = document.createElement('p');
@@ -116,4 +117,36 @@ function renderExplorer(node, inEdges, outEdges, nodeById, container) {
 
   grid.append(inCol, outCol);
   container.appendChild(grid);
+
+  // Maps row
+  const mapsRow = document.createElement('div');
+  mapsRow.className = 'explorer-maps';
+
+  const inMapWrap = document.createElement('div');
+  inMapWrap.className = 'explorer-map-wrap';
+  const inMapLabel = document.createElement('p');
+  inMapLabel.className = 'explorer-map-label';
+  inMapLabel.textContent = `Cities with a ${node.name}er Straße`;
+  const inMapDiv = document.createElement('div');
+  inMapDiv.className = 'explorer-map';
+  inMapDiv.id = 'map-expl-in';
+  inMapWrap.append(inMapLabel, inMapDiv);
+
+  const outMapWrap = document.createElement('div');
+  outMapWrap.className = 'explorer-map-wrap';
+  const outMapLabel = document.createElement('p');
+  outMapLabel.className = 'explorer-map-label';
+  outMapLabel.textContent = `Cities that ${node.name} streets lead to`;
+  const outMapDiv = document.createElement('div');
+  outMapDiv.className = 'explorer-map';
+  outMapDiv.id = 'map-expl-out';
+  outMapWrap.append(outMapLabel, outMapDiv);
+
+  mapsRow.append(inMapWrap, outMapWrap);
+  container.appendChild(mapsRow);
+
+  const inNeighborIds  = inEdges.map(e => e.source);
+  const outNeighborIds = outEdges.map(e => e.target);
+  renderExplorerMap(graphData, node.id, inNeighborIds,  '#map-expl-in',  'var(--accent)', 'in');
+  renderExplorerMap(graphData, node.id, outNeighborIds, '#map-expl-out', 'var(--gold)',   'out');
 }

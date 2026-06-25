@@ -136,6 +136,48 @@ function renderDisconnectedMap(graphData, nodeIds) {
   _addMapHint('#map-disconnected');
 }
 
+function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborColor, clipSuffix) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+  const W = el.clientWidth || 360, H = 210;
+  const proj = makeProjection(W, H);
+  const byId = nodeById(graphData);
+  const neighborSet = new Set(neighborIds);
+
+  d3.select(selector + ' svg').remove();
+
+  const svg = d3.select(selector).append('svg').attr('width', W).attr('height', H);
+  const clipId = 'clip-expl-' + clipSuffix;
+  svg.append('defs').append('clipPath').attr('id', clipId)
+    .append('rect').attr('width', W).attr('height', H);
+  const g = svg.append('g').attr('clip-path', `url(#${clipId})`);
+
+  // Background nodes
+  g.append('g').selectAll('circle')
+    .data(graphData.nodes.filter(n => !neighborSet.has(n.id) && n.id !== centerId))
+    .join('circle')
+    .attr('cx', d => proj([d.lon, d.lat])[0])
+    .attr('cy', d => proj([d.lon, d.lat])[1])
+    .attr('r', 1.2).attr('fill', '#1e2235');
+
+  // Neighbor nodes
+  neighborIds.forEach(nid => {
+    const n = byId[nid]; if (!n) return;
+    const [x, y] = proj([n.lon, n.lat]);
+    g.append('circle').attr('cx', x).attr('cy', y).attr('r', 3)
+      .attr('fill', neighborColor).attr('opacity', 0.85);
+  });
+
+  // Center node
+  const centerNode = byId[centerId];
+  if (centerNode) {
+    const [cx, cy] = proj([centerNode.lon, centerNode.lat]);
+    g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 6).attr('fill', '#ffffff');
+  }
+
+  _addZoom(svg, g);
+}
+
 // Greedy label placement: tries candidate offsets in order, picks first non-overlapping slot.
 function _placeLabels(items, proj, fontSize) {
   const CHAR_W = fontSize * 0.58;

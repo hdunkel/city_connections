@@ -104,15 +104,40 @@ function renderBarChart(selector, data, labelFn, valueFn) {
     .call(xAxis);
 }
 
-Reveal.initialize({
-  hash: true,
-  transition: 'fade',
-  backgroundTransition: 'fade',
-  controls: false,
-});
+const isMobile = window.innerWidth <= 768;
 
-document.getElementById('nav-prev').addEventListener('click', () => Reveal.prev());
-document.getElementById('nav-next').addEventListener('click', () => Reveal.next());
+if (isMobile) {
+  // Scrollable single-page layout — Reveal.js is NOT initialized.
+  // CSS overrides in style.css convert the slide sections into stacked cards.
+  const sections = Array.from(document.querySelectorAll('.reveal .slides > section'));
+
+  function getActiveIndex() {
+    const mid = window.innerHeight * 0.4;
+    let best = 0;
+    sections.forEach((s, i) => {
+      if (s.getBoundingClientRect().top <= mid) best = i;
+    });
+    return best;
+  }
+
+  document.getElementById('nav-prev').addEventListener('click', () => {
+    const i = getActiveIndex();
+    if (i > 0) sections[i - 1].scrollIntoView({ behavior: 'smooth' });
+  });
+  document.getElementById('nav-next').addEventListener('click', () => {
+    const i = getActiveIndex();
+    if (i < sections.length - 1) sections[i + 1].scrollIntoView({ behavior: 'smooth' });
+  });
+} else {
+  Reveal.initialize({
+    hash: true,
+    transition: 'fade',
+    backgroundTransition: 'fade',
+    controls: false,
+  });
+  document.getElementById('nav-prev').addEventListener('click', () => Reveal.prev());
+  document.getElementById('nav-next').addEventListener('click', () => Reveal.next());
+}
 
 loadData().then(() => {
   initMap(graphData);
