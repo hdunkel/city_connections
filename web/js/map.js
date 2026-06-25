@@ -289,6 +289,54 @@ function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborC
   _setupZoom(canvas, draw);
 }
 
+// ── Uncharted — cities with zero incoming connections ────────────────────────
+function renderUnchartedMap(graphData, unknownIds) {
+  const el = document.getElementById('map-uncharted');
+  if (!el) return;
+  const W = el.clientWidth || 800, H = el.clientHeight || 400;
+  const proj = makeProjection(W, H);
+  const { px, py, N } = _preproject(graphData.nodes, proj);
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
+
+  const isUnknown = new Uint8Array(N);
+  unknownIds.forEach(id => { const i = nodeIdx.get(id); if (i !== undefined) isUnknown[i] = 1; });
+
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
+
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
+
+    // Referenced cities — dim background
+    ctx.beginPath();
+    ctx.fillStyle = '#1e2235';
+    for (let i = 0; i < N; i++) {
+      if (isUnknown[i]) continue;
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      if (sx < -3 || sx > W+3 || sy < -3 || sy > H+3) continue;
+      ctx.moveTo(sx+1.5, sy); ctx.arc(sx, sy, 1.5, 0, Math.PI*2);
+    }
+    ctx.fill();
+
+    // Uncharted cities — gold highlight
+    ctx.beginPath();
+    ctx.fillStyle = '#f7c04f';
+    ctx.globalAlpha = 0.75;
+    for (let i = 0; i < N; i++) {
+      if (!isUnknown[i]) continue;
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      if (sx < -3 || sx > W+3 || sy < -3 || sy > H+3) continue;
+      ctx.moveTo(sx+1.5, sy); ctx.arc(sx, sy, 1.5, 0, Math.PI*2);
+    }
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  _setupZoom(canvas, draw);
+  _addMapHint(el);
+}
+
 // ── Diameter / longest-road map ──────────────────────────────────────────────
 function renderDiameterMap(graphData, pathIds) {
   const el = document.getElementById('map-diameter');

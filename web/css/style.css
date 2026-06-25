@@ -61,7 +61,7 @@ html, body, .reveal-viewport { background: var(--bg) !important; background-colo
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Maps */
-#map-overview, #map-diameter, #map-path, #map-disconnected {
+#map-overview, #map-diameter, #map-path, #map-disconnected, #map-uncharted {
   width: 100%; height: 400px; margin-top: 0.6em;
 }
 
@@ -320,7 +320,7 @@ a.street-link:hover { text-decoration: underline; }
   .explorer-map  { height: 170px; }
 
   /* Maps — shorter on mobile */
-  #map-overview, #map-path, #map-disconnected, #map-diameter {
+  #map-overview, #map-path, #map-disconnected, #map-diameter, #map-uncharted {
     height: 230px;
   }
 

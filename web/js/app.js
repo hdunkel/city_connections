@@ -89,6 +89,21 @@ function renderSlide(slideId) {
       break;
     }
 
+    case 'slide-uncharted': {
+      // Compute in-degree for every node
+      const inDeg = new Int32Array(graphData.nodes.length);
+      const nIdx  = new Map(graphData.nodes.map((n, i) => [n.id, i]));
+      graphData.edges.forEach(e => { const i = nIdx.get(e.target); if (i !== undefined) inDeg[i]++; });
+      const unknownIds = graphData.nodes.filter((_, i) => inDeg[i] === 0).map(n => n.id);
+      const pct = (unknownIds.length / graphData.nodes.length * 100).toFixed(1);
+      document.getElementById('stat-uncharted').innerHTML =
+        `<p><strong>${unknownIds.length.toLocaleString('de-DE')}</strong> of ` +
+        `${graphData.nodes.length.toLocaleString('de-DE')} cities (${pct}%) ` +
+        `have never had a street named after them in any other German municipality.</p>`;
+      renderUnchartedMap(graphData, unknownIds);
+      break;
+    }
+
     case 'slide-betweenness':
       renderBarChart('#chart-betweenness', statsData.top_betweenness.slice(0, 10),
         d => d.name, d => d.score);
