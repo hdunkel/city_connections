@@ -42,7 +42,17 @@ function initExplorer(graphData) {
 
   input.addEventListener('change', () => {
     const id = nameToId(input.value);
-    if (!id) { container.replaceChildren(); return; }
+    if (!id) {
+      container.replaceChildren();
+      if (input.value.trim()) {
+        const msg = document.createElement('p');
+        msg.className = 'muted';
+        msg.style.fontSize = '0.82em';
+        msg.textContent = 'City not found — try the autocomplete suggestions.';
+        container.appendChild(msg);
+      }
+      return;
+    }
     const node = nodeById[id];
     renderExplorer(graphData, node, incoming[id] ?? [], outgoing[id] ?? [], nodeById, container);
   });

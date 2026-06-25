@@ -14,6 +14,11 @@ async function loadData() {
   initPathfinder(graphData);
   initExplorer(graphData);
 
+  // Flush any slides that became visible before graphData was ready
+  const pending = [..._pending];
+  _pending.clear();
+  pending.forEach(renderSlide);
+
   document.getElementById('loading-overlay').hidden = true;
 }
 
@@ -56,9 +61,11 @@ function populateTextStats() {
 // Maps and charts render only when their slide/section becomes visible.
 
 const _rendered = new Set();
+const _pending  = new Set(); // slides that need rendering but graphData isn't ready yet
 
 function renderSlide(slideId) {
-  if (_rendered.has(slideId) || !graphData) return;
+  if (_rendered.has(slideId)) return;
+  if (!graphData) { _pending.add(slideId); return; }
   _rendered.add(slideId);
 
   switch (slideId) {
@@ -117,7 +124,7 @@ function renderBarChart(selector, data, labelFn, valueFn) {
   const fmtVal = isFloat ? d3.format('.4f') : d => d3.format(',')(Math.round(d));
   const maxValW = Math.ceil(Math.max(...data.map(d => ctx.measureText(fmtVal(valueFn(d))).width))) + 10;
 
-  const m = { top: 8, right: Math.max(50, maxValW), bottom: 30, left: Math.max(140, maxLabelW) };
+  const m = { top: 8, right: Math.max(50, maxValW), bottom: 30, left: Math.max(isMobile ? 90 : 140, maxLabelW) };
 
   const svg = d3.select(selector).append('svg').attr('width', W).attr('height', H);
   const x = d3.scaleLinear().domain([0, maxVal]).range([m.left, W - m.right]);

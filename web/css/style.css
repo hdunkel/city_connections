@@ -42,12 +42,23 @@ html, body, .reveal-viewport { background: var(--bg) !important; background-colo
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.7em;
   z-index: 9999;
   color: var(--muted);
   font-size: 0.9em;
   letter-spacing: 0.05em;
 }
 #loading-overlay[hidden] { display: none; }
+#loading-overlay::before {
+  content: '';
+  width: 20px; height: 20px;
+  border: 2px solid rgba(107,114,128,0.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Maps */
 #map-overview, #map-diameter, #map-path, #map-disconnected {
