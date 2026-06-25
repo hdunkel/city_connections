@@ -2,35 +2,42 @@
 let graphData = null;
 let statsData = null;
 
+// ── Data loading ─────────────────────────────────────────────────────────────
+
 async function loadData() {
-  [graphData, statsData] = await Promise.all([
-    fetch('data/graph.json').then(r => r.json()),
-    fetch('data/stats.json').then(r => r.json()),
-  ]);
+  // Load stats first (tiny file) so text content appears immediately.
+  statsData = await fetch('data/stats.json').then(r => r.json());
+  populateTextStats();
+
+  // Load graph data (5+ MB) for maps and interactive features.
+  graphData = await fetch('data/graph.json').then(r => r.json());
+  initPathfinder(graphData);
+  initExplorer(graphData);
+
+  document.getElementById('loading-overlay').hidden = true;
 }
 
-function populateStats() {
-  document.getElementById('stat-nodes').textContent = statsData.node_count.toLocaleString('de-DE');
-  document.getElementById('stat-edges').textContent = statsData.edge_count.toLocaleString('de-DE');
+// ── Text statistics (no graphData needed) ───────────────────────────────────
+
+function populateTextStats() {
+  document.getElementById('stat-nodes').textContent =
+    statsData.node_count.toLocaleString('de-DE');
+  document.getElementById('stat-edges').textContent =
+    statsData.edge_count.toLocaleString('de-DE');
 
   document.getElementById('stat-connectivity').innerHTML = `
     <p>${statsData.wcc_count} weakly connected component${statsData.wcc_count !== 1 ? 's' : ''}</p>
-    <p>Largest: <strong>${statsData.largest_wcc_size}</strong> cities</p>
+    <p>Largest: <strong>${statsData.largest_wcc_size.toLocaleString('de-DE')}</strong> cities</p>
     <p>${statsData.scc_count} strongly connected components</p>
-    <p>Largest SCC: <strong>${statsData.largest_scc_size}</strong> cities</p>
+    <p>Largest SCC: <strong>${statsData.largest_scc_size.toLocaleString('de-DE')}</strong> cities</p>
   `;
 
-  const byId = Object.fromEntries(graphData.nodes.map(n => [n.id, n.name]));
-  const pathNames = statsData.diameter_path.map(id => byId[id] ?? id).join(' → ');
   const diameterEl = document.getElementById('stat-diameter');
   diameterEl.replaceChildren();
   const hopsP = document.createElement('p');
   hopsP.textContent = `${statsData.diameter_length} hops`;
-  const namesP = document.createElement('p');
-  namesP.className = 'muted';
-  namesP.textContent = pathNames;
-  diameterEl.append(hopsP, namesP);
-  renderDiameterMap(graphData, statsData.diameter_path);
+  diameterEl.appendChild(hopsP);
+  // City names for the path are rendered lazily (needs graphData)
 
   const disc = statsData.largest_disconnected;
   document.getElementById('stat-disconnected').innerHTML = `
@@ -43,15 +50,56 @@ function populateStats() {
     </p>
     <p class="muted">No street-name path exists between these two cities in either direction.</p>
   `;
-  renderDisconnectedMap(graphData, [disc[0].id, disc[1].id]);
-
-  renderBarChart('#chart-betweenness', statsData.top_betweenness.slice(0, 10),
-    d => d.name, d => d.score);
-  renderBarChart('#chart-indegree',    statsData.top_in_degree.slice(0, 10),
-    d => d.name, d => d.count);
-  renderBarChart('#chart-outdegree',   statsData.top_out_degree.slice(0, 10),
-    d => d.name, d => d.count);
 }
+
+// ── Lazy rendering ───────────────────────────────────────────────────────────
+// Maps and charts render only when their slide/section becomes visible.
+
+const _rendered = new Set();
+
+function renderSlide(slideId) {
+  if (_rendered.has(slideId) || !graphData) return;
+  _rendered.add(slideId);
+
+  switch (slideId) {
+    case 'slide-overview':
+      initMap(graphData);
+      break;
+
+    case 'slide-diameter': {
+      const byId = Object.fromEntries(graphData.nodes.map(n => [n.id, n]));
+      const pathNames = statsData.diameter_path.map(id => byId[id]?.name ?? id).join(' → ');
+      const p = document.createElement('p');
+      p.className = 'muted'; p.textContent = pathNames;
+      document.getElementById('stat-diameter').appendChild(p);
+      renderDiameterMap(graphData, statsData.diameter_path);
+      break;
+    }
+
+    case 'slide-disconnected': {
+      const disc = statsData.largest_disconnected;
+      renderDisconnectedMap(graphData, [disc[0].id, disc[1].id]);
+      break;
+    }
+
+    case 'slide-betweenness':
+      renderBarChart('#chart-betweenness', statsData.top_betweenness.slice(0, 10),
+        d => d.name, d => d.score);
+      break;
+
+    case 'slide-indegree':
+      renderBarChart('#chart-indegree', statsData.top_in_degree.slice(0, 10),
+        d => d.name, d => d.count);
+      break;
+
+    case 'slide-outdegree':
+      renderBarChart('#chart-outdegree', statsData.top_out_degree.slice(0, 10),
+        d => d.name, d => d.count);
+      break;
+  }
+}
+
+// ── Bar charts ───────────────────────────────────────────────────────────────
 
 function renderBarChart(selector, data, labelFn, valueFn) {
   if (!data || data.length === 0) return;
@@ -59,7 +107,6 @@ function renderBarChart(selector, data, labelFn, valueFn) {
   if (!el) return;
   const W = el.clientWidth || 800, H = 320;
 
-  // Measure labels and values to set margins dynamically
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   ctx.font = '11px sans-serif';
@@ -87,15 +134,12 @@ function renderBarChart(selector, data, labelFn, valueFn) {
     .attr('x', m.left - 6).attr('y', d => y(labelFn(d)) + y.bandwidth() / 2)
     .attr('dy', '0.35em').attr('text-anchor', 'end').text(labelFn);
 
-  // Value labels at end of each bar
   svg.selectAll('.bar-val').data(data).join('text')
     .attr('class', 'bar-val')
     .attr('x', d => x(valueFn(d)) + 5)
     .attr('y', d => y(labelFn(d)) + y.bandwidth() / 2)
-    .attr('dy', '0.35em')
-    .text(d => fmtVal(valueFn(d)));
+    .attr('dy', '0.35em').text(d => fmtVal(valueFn(d)));
 
-  // X-axis with tick labels
   const xAxis = d3.axisBottom(x)
     .ticks(5)
     .tickFormat(isFloat ? d3.format('.3f') : d => d3.format(',')(Math.round(d)));
@@ -104,22 +148,19 @@ function renderBarChart(selector, data, labelFn, valueFn) {
     .call(xAxis);
 }
 
+// ── Navigation ───────────────────────────────────────────────────────────────
+
 const isMobile = window.innerWidth <= 768;
 const btnPrev  = document.getElementById('nav-prev');
 const btnNext  = document.getElementById('nav-next');
 
 if (isMobile) {
-  // Scrollable single-page layout — Reveal.js is NOT initialized.
-  // reveal.css is also not loaded (media attr on link tag), so sections
-  // are plain block divs that flow naturally and the page scrolls freely.
   const sections = Array.from(document.querySelectorAll('.reveal .slides > section'));
 
   function getActiveIndex() {
     const mid = window.innerHeight * 0.4;
     let best = 0;
-    sections.forEach((s, i) => {
-      if (s.getBoundingClientRect().top <= mid) best = i;
-    });
+    sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= mid) best = i; });
     return best;
   }
 
@@ -138,8 +179,15 @@ if (isMobile) {
     if (i < sections.length - 1) sections[i + 1].scrollIntoView({ behavior: 'smooth' });
   });
 
+  // Lazy rendering via IntersectionObserver
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) renderSlide(e.target.id); });
+  }, { threshold: 0.15 });
+  sections.forEach(s => observer.observe(s));
+
   window.addEventListener('scroll', updateMobileNav, { passive: true });
   updateMobileNav();
+
 } else {
   const sections = document.querySelectorAll('.reveal .slides > section');
   const lastIdx  = sections.length - 1;
@@ -157,16 +205,16 @@ if (isMobile) {
     controls: false,
   });
 
-  Reveal.on('ready',        updateDesktopNav);
-  Reveal.on('slidechanged', updateDesktopNav);
+  Reveal.on('ready',        e => { updateDesktopNav(); renderSlide(e.currentSlide.id); });
+  Reveal.on('slidechanged', e => { updateDesktopNav(); renderSlide(e.currentSlide.id); });
 
   btnPrev.addEventListener('click', () => Reveal.prev());
   btnNext.addEventListener('click', () => Reveal.next());
 }
 
-loadData().then(() => {
-  initMap(graphData);
-  populateStats();
-  initPathfinder(graphData);
-  initExplorer(graphData);
-}).catch(err => console.error('Data load failed:', err));
+// ── Boot ─────────────────────────────────────────────────────────────────────
+
+loadData().catch(err => {
+  console.error('Data load failed:', err);
+  document.getElementById('loading-overlay').textContent = 'Failed to load data.';
+});

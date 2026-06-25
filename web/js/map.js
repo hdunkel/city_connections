@@ -7,295 +7,332 @@ function makeProjection(width, height) {
     .translate([width / 2, height / 2]);
 }
 
-function nodeById(graphData) {
-  return Object.fromEntries(graphData.nodes.map(n => [n.id, n]));
+// Resolve 'var(--name)' to its computed value so Canvas can use it.
+function _resolveCSSColor(color) {
+  if (!color.startsWith('var(')) return color;
+  const name = color.slice(4, -1).trim();
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || color;
 }
 
-function _addZoom(svg, g) {
-  svg.call(
+function _makeCanvas(el, W, H) {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  c.style.cssText = 'display:block;cursor:grab';
+  el.appendChild(c);
+  return c;
+}
+
+// Wire up D3 zoom → redraw callback, draw once at identity.
+function _setupZoom(canvas, draw) {
+  d3.select(canvas).call(
     d3.zoom()
       .scaleExtent([0.5, 20])
-      .on('zoom', e => {
-        g.attr('transform', e.transform);
-        const k = e.transform.k;
-        // Counter-scale: circles tagged data-r stay the same visual size
-        g.selectAll('[data-r]').attr('r', function() {
-          return +this.getAttribute('data-r') / k;
-        });
-        // Counter-scale: text tagged data-fs stays the same visual size
-        g.selectAll('[data-fs]').style('font-size', function() {
-          return (+this.getAttribute('data-fs') / k) + 'px';
-        });
-      })
+      .on('zoom', e => { canvas.style.cursor = 'grabbing'; draw(e.transform); })
+      .on('end',  () => { canvas.style.cursor = 'grab'; })
   );
+  draw(d3.zoomIdentity);
 }
 
-function _addMapHint(parentSelector) {
-  d3.select(parentSelector).append('p')
-    .attr('class', 'map-hint')
-    .text('scroll to zoom · drag to pan');
+function _addMapHint(el) {
+  const p = document.createElement('p');
+  p.className = 'map-hint';
+  p.textContent = window.innerWidth <= 768
+    ? 'pinch to zoom · drag to pan'
+    : 'scroll to zoom · drag to pan';
+  el.appendChild(p);
 }
 
+// Pre-project all nodes once; returns parallel Float32Arrays for speed.
+function _preproject(nodes, proj) {
+  const N = nodes.length;
+  const px = new Float32Array(N);
+  const py = new Float32Array(N);
+  nodes.forEach((n, i) => { [px[i], py[i]] = proj([n.lon, n.lat]); });
+  return { px, py, N };
+}
+
+// Draw all background dots in one batched path.
+function _drawBg(ctx, px, py, N, t, W, H, r) {
+  const { k, x: tx, y: ty } = t;
+  ctx.beginPath();
+  ctx.fillStyle = '#1e2235';
+  for (let i = 0; i < N; i++) {
+    const sx = px[i] * k + tx, sy = py[i] * k + ty;
+    if (sx < -r || sx > W + r || sy < -r || sy > H + r) continue;
+    ctx.moveTo(sx + r, sy);
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+  }
+  ctx.fill();
+}
+
+// ── Overview map ────────────────────────────────────────────────────────────
 function initMap(graphData) {
   const el = document.getElementById('map-overview');
   if (!el) return;
-  const W = el.clientWidth || 800, H = 400;
+  const W = el.clientWidth || 800, H = el.clientHeight || 400;
   const proj = makeProjection(W, H);
-  const byId = nodeById(graphData);
+  const { px, py, N } = _preproject(graphData.nodes, proj);
 
-  const svg = d3.select('#map-overview').append('svg').attr('width', W).attr('height', H);
-  svg.append('defs').append('clipPath').attr('id', 'clip-overview')
-    .append('rect').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('clip-path', 'url(#clip-overview)');
+  // Population-scaled radii, capped so they stay readable
+  const pr = new Float32Array(N);
+  graphData.nodes.forEach((n, i) => {
+    pr[i] = Math.max(1.5, Math.sqrt((n.population || 0) / 80000));
+  });
 
-  g.append('g').selectAll('line')
-    .data(graphData.edges).join('line')
-    .attr('x1', d => { const n = byId[d.source]; return n ? proj([n.lon, n.lat])[0] : 0; })
-    .attr('y1', d => { const n = byId[d.source]; return n ? proj([n.lon, n.lat])[1] : 0; })
-    .attr('x2', d => { const n = byId[d.target]; return n ? proj([n.lon, n.lat])[0] : 0; })
-    .attr('y2', d => { const n = byId[d.target]; return n ? proj([n.lon, n.lat])[1] : 0; })
-    .attr('stroke', 'rgba(79,142,247,0.12)').attr('stroke-width', 0.5);
+  // Edge endpoints as index pairs
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
+  const E = graphData.edges.length;
+  const eSrc = new Int32Array(E), eTgt = new Int32Array(E);
+  graphData.edges.forEach((e, i) => {
+    eSrc[i] = nodeIdx.get(e.source) ?? -1;
+    eTgt[i] = nodeIdx.get(e.target) ?? -1;
+  });
 
-  g.append('g').selectAll('circle')
-    .data(graphData.nodes).join('circle')
-    .attr('cx', d => proj([d.lon, d.lat])[0])
-    .attr('cy', d => proj([d.lon, d.lat])[1])
-    .each(function(d) {
-      const r = Math.max(1.5, Math.sqrt(d.population / 80000));
-      d3.select(this).attr('r', r).attr('data-r', r);
-    })
-    .attr('fill', '#4f8ef7').attr('opacity', 0.7);
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
 
-  _addZoom(svg, g);
-  _addMapHint('#map-overview');
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
+
+    // Edges — single batched path
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(79,142,247,0.12)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < E; i++) {
+      const si = eSrc[i], ti = eTgt[i];
+      if (si < 0 || ti < 0) continue;
+      const x1 = px[si]*k+tx, y1 = py[si]*k+ty;
+      const x2 = px[ti]*k+tx, y2 = py[ti]*k+ty;
+      // Cull only when both endpoints are clearly off-screen
+      if ((x1 < -80 && x2 < -80) || (x1 > W+80 && x2 > W+80)) continue;
+      if ((y1 < -80 && y2 < -80) || (y1 > H+80 && y2 > H+80)) continue;
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    }
+    ctx.stroke();
+
+    // Nodes — single batched path
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(79,142,247,0.7)';
+    for (let i = 0; i < N; i++) {
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      const r = pr[i];
+      if (sx < -r || sx > W+r || sy < -r || sy > H+r) continue;
+      ctx.moveTo(sx + r, sy);
+      ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
+  _setupZoom(canvas, draw);
+  _addMapHint(el);
 }
 
+// ── Pathfinder result map ────────────────────────────────────────────────────
 function highlightPath(graphData, pathIds) {
   const el = document.getElementById('map-path');
   if (!el) return;
-  const W = el.clientWidth || 800, H = 400;
+  const W = el.clientWidth || 800, H = el.clientHeight || 400;
   const proj = makeProjection(W, H);
-  const byId = nodeById(graphData);
 
-  d3.select('#map-path svg').remove();
-  d3.select('#map-path p.map-hint').remove();
+  el.querySelectorAll('canvas, p.map-hint').forEach(e => e.remove());
 
-  const svg = d3.select('#map-path').append('svg').attr('width', W).attr('height', H);
-  svg.append('defs').append('clipPath').attr('id', 'clip-path')
-    .append('rect').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('clip-path', 'url(#clip-path)');
+  const { px, py, N } = _preproject(graphData.nodes, proj);
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
+  const pathPts = pathIds
+    .map(id => { const i = nodeIdx.get(id); return i !== undefined ? i : -1; })
+    .filter(i => i >= 0);
 
-  g.append('g').selectAll('circle')
-    .data(graphData.nodes).join('circle')
-    .attr('cx', d => proj([d.lon, d.lat])[0])
-    .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
 
-  for (let i = 0; i < pathIds.length - 1; i++) {
-    const a = byId[pathIds[i]], b = byId[pathIds[i + 1]];
-    if (!a || !b) continue;
-    const [x1, y1] = proj([a.lon, a.lat]);
-    const [x2, y2] = proj([b.lon, b.lat]);
-    g.append('line').attr('x1', x1).attr('y1', y1)
-      .attr('x2', x2).attr('y2', y2)
-      .attr('stroke', '#f7c04f').attr('stroke-width', 2);
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
+
+    _drawBg(ctx, px, py, N, t, W, H, 1.5);
+
+    // Path lines
+    if (pathPts.length > 1) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#f7c04f';
+      ctx.lineWidth = 2;
+      ctx.moveTo(px[pathPts[0]]*k+tx, py[pathPts[0]]*k+ty);
+      for (let i = 1; i < pathPts.length; i++) {
+        ctx.lineTo(px[pathPts[i]]*k+tx, py[pathPts[i]]*k+ty);
+      }
+      ctx.stroke();
+    }
+
+    // Path nodes + labels
+    ctx.font = '11px Inter, system-ui, sans-serif';
+    pathPts.forEach((ni, idx) => {
+      const sx = px[ni]*k+tx, sy = py[ni]*k+ty;
+      const isEnd = idx === 0 || idx === pathPts.length - 1;
+      ctx.beginPath();
+      ctx.arc(sx, sy, isEnd ? 6 : 4, 0, Math.PI * 2);
+      ctx.fillStyle = isEnd ? '#f7c04f' : '#4f8ef7';
+      ctx.fill();
+      ctx.fillStyle = '#e8eaf0';
+      ctx.fillText(graphData.nodes[ni].name, sx + 8, sy + 4);
+    });
   }
 
-  pathIds.forEach((id, i) => {
-    const n = byId[id]; if (!n) return;
-    const [x, y] = proj([n.lon, n.lat]);
-    const isEnd = i === 0 || i === pathIds.length - 1;
-    const r = isEnd ? 6 : 4;
-    g.append('circle').attr('cx', x).attr('cy', y)
-      .attr('r', r).attr('data-r', r)
-      .attr('fill', isEnd ? '#f7c04f' : '#4f8ef7');
-    g.append('text').attr('x', x + 8).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '11px').attr('data-fs', 11)
-      .text(n.name);
-  });
-
-  _addZoom(svg, g);
-  _addMapHint('#map-path');
+  _setupZoom(canvas, draw);
+  _addMapHint(el);
 }
 
+// ── Islands / disconnected map ───────────────────────────────────────────────
 function renderDisconnectedMap(graphData, nodeIds) {
   const el = document.getElementById('map-disconnected');
   if (!el) return;
-  const W = el.clientWidth || 800, H = 340;
+  const W = el.clientWidth || 800, H = el.clientHeight || 400;
   const proj = makeProjection(W, H);
-  const byId = nodeById(graphData);
+  const { px, py, N } = _preproject(graphData.nodes, proj);
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
 
-  const svg = d3.select('#map-disconnected').append('svg').attr('width', W).attr('height', H);
-  svg.append('defs').append('clipPath').attr('id', 'clip-disconnected')
-    .append('rect').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('clip-path', 'url(#clip-disconnected)');
+  const highlights = nodeIds.map((id, ci) => {
+    const i = nodeIdx.get(id);
+    return i !== undefined
+      ? { i, name: graphData.nodes[i].name, color: ci === 0 ? '#4f8ef7' : '#f7c04f' }
+      : null;
+  }).filter(Boolean);
 
-  g.append('g').selectAll('circle')
-    .data(graphData.nodes).join('circle')
-    .attr('cx', d => proj([d.lon, d.lat])[0])
-    .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
 
-  const colors = ['#4f8ef7', '#f7c04f'];
-  nodeIds.forEach((id, i) => {
-    const n = byId[id]; if (!n) return;
-    const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y)
-      .attr('r', 8).attr('data-r', 8).attr('fill', colors[i]);
-    const anchor = x > W / 2 ? 'end' : 'start';
-    const dx = x > W / 2 ? -12 : 12;
-    g.append('text').attr('x', x + dx).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '12px').attr('data-fs', 12)
-      .attr('font-weight', '600').attr('text-anchor', anchor).text(n.name);
-  });
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
+    _drawBg(ctx, px, py, N, t, W, H, 1.5);
 
-  _addZoom(svg, g);
-  _addMapHint('#map-disconnected');
+    ctx.font = '600 12px Inter, system-ui, sans-serif';
+    highlights.forEach(({ i, name, color }) => {
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.fillStyle = '#e8eaf0';
+      ctx.textAlign = sx > W / 2 ? 'right' : 'left';
+      ctx.fillText(name, sx + (sx > W / 2 ? -12 : 12), sy + 4);
+    });
+    ctx.textAlign = 'left';
+  }
+
+  _setupZoom(canvas, draw);
+  _addMapHint(el);
 }
 
+// ── City Explorer maps ───────────────────────────────────────────────────────
 function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborColor, clipSuffix) {
   const el = document.querySelector(selector);
   if (!el) return;
-  const W = el.clientWidth || 360, H = 210;
+  const W = el.clientWidth || 360, H = el.clientHeight || 170;
   const proj = makeProjection(W, H);
-  const byId = nodeById(graphData);
+  const color = _resolveCSSColor(neighborColor);
+
+  el.querySelectorAll('canvas').forEach(c => c.remove());
+
+  const { px, py, N } = _preproject(graphData.nodes, proj);
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
   const neighborSet = new Set(neighborIds);
+  const neighborPts = neighborIds.map(id => nodeIdx.get(id) ?? -1).filter(i => i >= 0);
+  const centerI = nodeIdx.get(centerId) ?? -1;
 
-  d3.select(selector + ' svg').remove();
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
 
-  const svg = d3.select(selector).append('svg').attr('width', W).attr('height', H);
-  const clipId = 'clip-expl-' + clipSuffix;
-  svg.append('defs').append('clipPath').attr('id', clipId)
-    .append('rect').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('clip-path', `url(#${clipId})`);
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
 
-  // Background nodes
-  g.append('g').selectAll('circle')
-    .data(graphData.nodes.filter(n => !neighborSet.has(n.id) && n.id !== centerId))
-    .join('circle')
-    .attr('cx', d => proj([d.lon, d.lat])[0])
-    .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.2).attr('data-r', 1.2).attr('fill', '#1e2235');
+    // Background (skip neighbors + center so highlights render cleanly on top)
+    ctx.beginPath();
+    ctx.fillStyle = '#1e2235';
+    for (let i = 0; i < N; i++) {
+      const n = graphData.nodes[i];
+      if (n.id === centerId || neighborSet.has(n.id)) continue;
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      if (sx < -5 || sx > W+5 || sy < -5 || sy > H+5) continue;
+      ctx.moveTo(sx + 1.2, sy);
+      ctx.arc(sx, sy, 1.2, 0, Math.PI * 2);
+    }
+    ctx.fill();
 
-  // Neighbor nodes
-  neighborIds.forEach(nid => {
-    const n = byId[nid]; if (!n) return;
-    const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y)
-      .attr('r', 3).attr('data-r', 3)
-      .attr('fill', neighborColor).attr('opacity', 0.85);
-  });
+    // Neighbours
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    neighborPts.forEach(i => {
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      ctx.moveTo(sx + 3, sy); ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+    });
+    ctx.fill();
+    ctx.globalAlpha = 1;
 
-  // Center node
-  const centerNode = byId[centerId];
-  if (centerNode) {
-    const [cx, cy] = proj([centerNode.lon, centerNode.lat]);
-    g.append('circle').attr('cx', cx).attr('cy', cy)
-      .attr('r', 6).attr('data-r', 6).attr('fill', '#ffffff');
+    // Center
+    if (centerI >= 0) {
+      const sx = px[centerI]*k+tx, sy = py[centerI]*k+ty;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff'; ctx.fill();
+    }
   }
 
-  _addZoom(svg, g);
+  _setupZoom(canvas, draw);
 }
 
-// Greedy label placement: tries candidate offsets in order, picks first non-overlapping slot.
-function _placeLabels(items, proj, fontSize) {
-  const CHAR_W = fontSize * 0.58;
-  const BOX_H  = fontSize + 4;
-  const PAD    = 3;
-
-  const CANDIDATES = [
-    { dx:  8, dy: -6, anchor: 'start' },
-    { dx:  8, dy: 13, anchor: 'start' },
-    { dx: -8, dy: -6, anchor: 'end'   },
-    { dx: -8, dy: 13, anchor: 'end'   },
-    { dx:  8, dy:-18, anchor: 'start' },
-    { dx:  8, dy: 24, anchor: 'start' },
-    { dx:-12, dy:-18, anchor: 'end'   },
-    { dx:-12, dy: 24, anchor: 'end'   },
-    { dx: 22, dy:  4, anchor: 'start' },
-    { dx:-22, dy:  4, anchor: 'end'   },
-  ];
-
-  const placed = [];
-
-  return items.map(({ node, label }) => {
-    const [cx, cy] = proj([node.lon, node.lat]);
-    const tw = label.length * CHAR_W;
-
-    for (const { dx, dy, anchor } of CANDIDATES) {
-      const lx = anchor === 'end' ? cx + dx - tw : cx + dx;
-      const ly = cy + dy - BOX_H;
-      const box = { x: lx - PAD, y: ly - PAD, w: tw + PAD * 2, h: BOX_H + PAD * 2 };
-
-      const hit = placed.some(r =>
-        box.x < r.x + r.w && box.x + box.w > r.x &&
-        box.y < r.y + r.h && box.y + box.h > r.y
-      );
-
-      if (!hit) {
-        placed.push(box);
-        return { cx, cy, label, dx, dy, anchor };
-      }
-    }
-
-    // All candidates overlap — fall back to first
-    const { dx, dy, anchor } = CANDIDATES[0];
-    return { cx, cy, label, dx, dy, anchor };
-  });
-}
-
+// ── Diameter / longest-road map ──────────────────────────────────────────────
 function renderDiameterMap(graphData, pathIds) {
   const el = document.getElementById('map-diameter');
   if (!el) return;
-  const W = el.clientWidth || 800, H = 400;
+  const W = el.clientWidth || 800, H = el.clientHeight || 400;
   const proj = makeProjection(W, H);
-  const byId = nodeById(graphData);
 
-  d3.select('#map-diameter svg').remove();
-  d3.select('#map-diameter p.map-hint').remove();
+  el.querySelectorAll('canvas, p.map-hint').forEach(e => e.remove());
 
-  const svg = d3.select('#map-diameter').append('svg').attr('width', W).attr('height', H);
-  svg.append('defs').append('clipPath').attr('id', 'clip-diameter')
-    .append('rect').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('clip-path', 'url(#clip-diameter)');
+  const { px, py, N } = _preproject(graphData.nodes, proj);
+  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
+  const pathPts = pathIds.map(id => nodeIdx.get(id) ?? -1).filter(i => i >= 0);
+  const endPts  = [pathPts[0], pathPts[pathPts.length - 1]];
 
-  g.append('g').selectAll('circle')
-    .data(graphData.nodes).join('circle')
-    .attr('cx', d => proj([d.lon, d.lat])[0])
-    .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
+  const canvas = _makeCanvas(el, W, H);
+  const ctx = canvas.getContext('2d');
 
-  for (let i = 0; i < pathIds.length - 1; i++) {
-    const a = byId[pathIds[i]], b = byId[pathIds[i + 1]];
-    if (!a || !b) continue;
-    const [x1, y1] = proj([a.lon, a.lat]);
-    const [x2, y2] = proj([b.lon, b.lat]);
-    g.append('line').attr('x1', x1).attr('y1', y1)
-      .attr('x2', x2).attr('y2', y2)
-      .attr('stroke', '#f7c04f').attr('stroke-width', 2.5);
+  function draw(t) {
+    const { k, x: tx, y: ty } = t;
+    ctx.clearRect(0, 0, W, H);
+    _drawBg(ctx, px, py, N, t, W, H, 1.5);
+
+    // Path line
+    if (pathPts.length > 1) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#f7c04f'; ctx.lineWidth = 2.5;
+      ctx.moveTo(px[pathPts[0]]*k+tx, py[pathPts[0]]*k+ty);
+      for (let i = 1; i < pathPts.length; i++) {
+        ctx.lineTo(px[pathPts[i]]*k+tx, py[pathPts[i]]*k+ty);
+      }
+      ctx.stroke();
+    }
+
+    // Path nodes
+    ctx.fillStyle = '#f7c04f';
+    ctx.beginPath();
+    pathPts.forEach(i => {
+      const sx = px[i]*k+tx, sy = py[i]*k+ty;
+      ctx.moveTo(sx + 5, sy); ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    });
+    ctx.fill();
+
+    // Endpoint labels
+    ctx.font = '600 11px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#e8eaf0';
+    endPts.forEach(i => {
+      if (i < 0) return;
+      ctx.fillText(graphData.nodes[i].name, px[i]*k+tx + 8, py[i]*k+ty + 4);
+    });
   }
 
-  pathIds.forEach((id) => {
-    const n = byId[id]; if (!n) return;
-    const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y)
-      .attr('r', 5).attr('data-r', 5).attr('fill', '#f7c04f');
-  });
-
-  const endpoints = [
-    { id: pathIds[0], label: byId[pathIds[0]]?.name ?? '' },
-    { id: pathIds[pathIds.length - 1], label: byId[pathIds[pathIds.length - 1]]?.name ?? '' },
-  ];
-
-  endpoints.forEach(({ id, label }) => {
-    const n = byId[id]; if (!n) return;
-    const [x, y] = proj([n.lon, n.lat]);
-    g.append('text')
-      .attr('x', x + 8).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '11px').attr('data-fs', 11)
-      .attr('font-weight', '600').text(label);
-  });
-
-  _addZoom(svg, g);
-  _addMapHint('#map-diameter');
+  _setupZoom(canvas, draw);
+  _addMapHint(el);
 }
