@@ -15,7 +15,18 @@ function _addZoom(svg, g) {
   svg.call(
     d3.zoom()
       .scaleExtent([0.5, 20])
-      .on('zoom', e => g.attr('transform', e.transform))
+      .on('zoom', e => {
+        g.attr('transform', e.transform);
+        const k = e.transform.k;
+        // Counter-scale: circles tagged data-r stay the same visual size
+        g.selectAll('[data-r]').attr('r', function() {
+          return +this.getAttribute('data-r') / k;
+        });
+        // Counter-scale: text tagged data-fs stays the same visual size
+        g.selectAll('[data-fs]').style('font-size', function() {
+          return (+this.getAttribute('data-fs') / k) + 'px';
+        });
+      })
   );
 }
 
@@ -49,7 +60,10 @@ function initMap(graphData) {
     .data(graphData.nodes).join('circle')
     .attr('cx', d => proj([d.lon, d.lat])[0])
     .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r',  d => Math.max(1.5, Math.sqrt(d.population / 80000)))
+    .each(function(d) {
+      const r = Math.max(1.5, Math.sqrt(d.population / 80000));
+      d3.select(this).attr('r', r).attr('data-r', r);
+    })
     .attr('fill', '#4f8ef7').attr('opacity', 0.7);
 
   _addZoom(svg, g);
@@ -75,7 +89,7 @@ function highlightPath(graphData, pathIds) {
     .data(graphData.nodes).join('circle')
     .attr('cx', d => proj([d.lon, d.lat])[0])
     .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('fill', '#1e2235');
+    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
 
   for (let i = 0; i < pathIds.length - 1; i++) {
     const a = byId[pathIds[i]], b = byId[pathIds[i + 1]];
@@ -91,11 +105,13 @@ function highlightPath(graphData, pathIds) {
     const n = byId[id]; if (!n) return;
     const [x, y] = proj([n.lon, n.lat]);
     const isEnd = i === 0 || i === pathIds.length - 1;
+    const r = isEnd ? 6 : 4;
     g.append('circle').attr('cx', x).attr('cy', y)
-      .attr('r', isEnd ? 6 : 4)
+      .attr('r', r).attr('data-r', r)
       .attr('fill', isEnd ? '#f7c04f' : '#4f8ef7');
     g.append('text').attr('x', x + 8).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '11px').text(n.name);
+      .attr('fill', '#e8eaf0').attr('font-size', '11px').attr('data-fs', 11)
+      .text(n.name);
   });
 
   _addZoom(svg, g);
@@ -118,18 +134,19 @@ function renderDisconnectedMap(graphData, nodeIds) {
     .data(graphData.nodes).join('circle')
     .attr('cx', d => proj([d.lon, d.lat])[0])
     .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('fill', '#1e2235');
+    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
 
   const colors = ['#4f8ef7', '#f7c04f'];
   nodeIds.forEach((id, i) => {
     const n = byId[id]; if (!n) return;
     const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y).attr('r', 8).attr('fill', colors[i]);
+    g.append('circle').attr('cx', x).attr('cy', y)
+      .attr('r', 8).attr('data-r', 8).attr('fill', colors[i]);
     const anchor = x > W / 2 ? 'end' : 'start';
     const dx = x > W / 2 ? -12 : 12;
     g.append('text').attr('x', x + dx).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '12px').attr('font-weight', '600')
-      .attr('text-anchor', anchor).text(n.name);
+      .attr('fill', '#e8eaf0').attr('font-size', '12px').attr('data-fs', 12)
+      .attr('font-weight', '600').attr('text-anchor', anchor).text(n.name);
   });
 
   _addZoom(svg, g);
@@ -158,13 +175,14 @@ function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborC
     .join('circle')
     .attr('cx', d => proj([d.lon, d.lat])[0])
     .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.2).attr('fill', '#1e2235');
+    .attr('r', 1.2).attr('data-r', 1.2).attr('fill', '#1e2235');
 
   // Neighbor nodes
   neighborIds.forEach(nid => {
     const n = byId[nid]; if (!n) return;
     const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y).attr('r', 3)
+    g.append('circle').attr('cx', x).attr('cy', y)
+      .attr('r', 3).attr('data-r', 3)
       .attr('fill', neighborColor).attr('opacity', 0.85);
   });
 
@@ -172,7 +190,8 @@ function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborC
   const centerNode = byId[centerId];
   if (centerNode) {
     const [cx, cy] = proj([centerNode.lon, centerNode.lat]);
-    g.append('circle').attr('cx', cx).attr('cy', cy).attr('r', 6).attr('fill', '#ffffff');
+    g.append('circle').attr('cx', cx).attr('cy', cy)
+      .attr('r', 6).attr('data-r', 6).attr('fill', '#ffffff');
   }
 
   _addZoom(svg, g);
@@ -244,7 +263,7 @@ function renderDiameterMap(graphData, pathIds) {
     .data(graphData.nodes).join('circle')
     .attr('cx', d => proj([d.lon, d.lat])[0])
     .attr('cy', d => proj([d.lon, d.lat])[1])
-    .attr('r', 1.5).attr('fill', '#1e2235');
+    .attr('r', 1.5).attr('data-r', 1.5).attr('fill', '#1e2235');
 
   for (let i = 0; i < pathIds.length - 1; i++) {
     const a = byId[pathIds[i]], b = byId[pathIds[i + 1]];
@@ -259,7 +278,8 @@ function renderDiameterMap(graphData, pathIds) {
   pathIds.forEach((id) => {
     const n = byId[id]; if (!n) return;
     const [x, y] = proj([n.lon, n.lat]);
-    g.append('circle').attr('cx', x).attr('cy', y).attr('r', 5).attr('fill', '#f7c04f');
+    g.append('circle').attr('cx', x).attr('cy', y)
+      .attr('r', 5).attr('data-r', 5).attr('fill', '#f7c04f');
   });
 
   const endpoints = [
@@ -272,8 +292,8 @@ function renderDiameterMap(graphData, pathIds) {
     const [x, y] = proj([n.lon, n.lat]);
     g.append('text')
       .attr('x', x + 8).attr('y', y + 4)
-      .attr('fill', '#e8eaf0').attr('font-size', '11px').attr('font-weight', '600')
-      .text(label);
+      .attr('fill', '#e8eaf0').attr('font-size', '11px').attr('data-fs', 11)
+      .attr('font-weight', '600').text(label);
   });
 
   _addZoom(svg, g);

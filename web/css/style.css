@@ -236,105 +236,80 @@ a.street-link:hover { text-decoration: underline; }
   color: var(--accent);
 }
 
-/* ── Mobile view (≤ 768 px) ─────────────────────────────────────────── */
-/* Sections become a scrollable page; Reveal layout is suppressed.       */
-@media (max-width: 768px) {
-  html, body {
-    height: auto !important;
-    overflow-y: auto !important;
-  }
+/* ── Nav button boundary state (both breakpoints) ───────────────── */
+#nav-controls button[disabled] {
+  visibility: hidden;
+}
 
-  /* Reveal container: revert to normal flow */
-  .reveal {
-    position: static !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  .reveal .slides {
-    position: static !important;
-    width: 100% !important;
-    height: auto !important;
-    display: block !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-    overflow: visible !important;
-    perspective: none !important;
-  }
+/* ── Mobile view (≤ 768 px) ─────────────────────────────────────────── */
+/* reveal.css is NOT loaded at this breakpoint (media attr on link tag). */
+/* Sections are plain block divs; the page scrolls naturally.            */
+@media (max-width: 768px) {
+  /* Sections: natural flow, full-width, separated by a divider */
   .reveal .slides > section {
-    display: block !important;
-    position: static !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    padding: 2.6em 1.3em 3.5em !important;
-    transform: none !important;
-    text-align: left !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    visibility: visible !important;
-    box-sizing: border-box !important;
+    display: block;
+    padding: 2.6em 1.3em 4em;
+    box-sizing: border-box;
     border-bottom: 1px solid rgba(255,255,255,0.07);
   }
 
-  /* Typography — bigger, easier to read */
-  .reveal h1 { font-size: 2em !important; }
-  .reveal h2 { font-size: 1.45em !important; margin-bottom: 0.6em !important; }
-  .reveal p  { font-size: 0.95em !important; line-height: 1.6 !important; }
-  .reveal .footnote { font-size: 0.7em !important; }
+  /* Typography */
+  .reveal h1 { font-size: 2em; }
+  .reveal h2 { font-size: 1.45em; margin-bottom: 0.5em; }
+  .reveal p  { font-size: 0.95em; line-height: 1.6; }
+  .reveal .footnote { font-size: 0.7em; }
 
   /* Inputs — 16 px min prevents iOS auto-zoom on focus */
   .reveal input[type="text"] {
-    font-size: 16px !important;
-    width: 100% !important;
-    padding: 0.65em 0.9em !important;
+    font-size: 16px;
+    width: 100%;
+    padding: 0.65em 0.9em;
     box-sizing: border-box;
   }
 
   /* Buttons — full-width, larger tap targets */
   #btn-find, .btn-example {
     width: 100%;
-    padding: 0.75em 1em !important;
-    font-size: 1em !important;
+    padding: 0.75em 1em;
+    font-size: 1em;
     box-sizing: border-box;
   }
 
   /* Pathfinder — vertical stack */
   #pathfinder-ui {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.7em !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7em;
   }
   #pathfinder-ui > span { display: none; }
-  #pathfinder-ui input  { width: 100% !important; }
+  #pathfinder-ui input  { width: 100%; }
 
-  /* Explorer — vertical stack, no height clamp */
+  /* Explorer — vertical stack, no height clamp so content scrolls with page */
   #explorer-ui {
-    flex-direction: column !important;
-    align-items: stretch !important;
+    flex-direction: column;
+    align-items: stretch;
   }
-  #explorer-ui input { width: 100% !important; }
+  #explorer-ui input { width: 100%; }
 
   .explorer-grid {
-    grid-template-columns: 1fr !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-    padding-right: 0 !important;
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 
-  .explorer-maps   { flex-direction: column !important; }
-  .explorer-map    { height: 170px !important; }
+  .explorer-maps { flex-direction: column; }
+  .explorer-map  { height: 170px; }
 
-  /* Maps — constrained heights for mobile viewport */
+  /* Maps — shorter on mobile */
   #map-overview, #map-path, #map-disconnected, #map-diameter {
-    height: 230px !important;
+    height: 230px;
   }
 
   /* Nav buttons — bigger touch targets */
   #nav-controls button {
-    width: 52px !important;
-    height: 52px !important;
-    font-size: 1.6em !important;
+    width: 52px;
+    height: 52px;
+    font-size: 1.6em;
   }
 }

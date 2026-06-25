@@ -105,10 +105,13 @@ function renderBarChart(selector, data, labelFn, valueFn) {
 }
 
 const isMobile = window.innerWidth <= 768;
+const btnPrev  = document.getElementById('nav-prev');
+const btnNext  = document.getElementById('nav-next');
 
 if (isMobile) {
   // Scrollable single-page layout — Reveal.js is NOT initialized.
-  // CSS overrides in style.css convert the slide sections into stacked cards.
+  // reveal.css is also not loaded (media attr on link tag), so sections
+  // are plain block divs that flow naturally and the page scrolls freely.
   const sections = Array.from(document.querySelectorAll('.reveal .slides > section'));
 
   function getActiveIndex() {
@@ -120,23 +123,45 @@ if (isMobile) {
     return best;
   }
 
-  document.getElementById('nav-prev').addEventListener('click', () => {
+  function updateMobileNav() {
+    const i = getActiveIndex();
+    btnPrev.disabled = (i === 0);
+    btnNext.disabled = (i === sections.length - 1);
+  }
+
+  btnPrev.addEventListener('click', () => {
     const i = getActiveIndex();
     if (i > 0) sections[i - 1].scrollIntoView({ behavior: 'smooth' });
   });
-  document.getElementById('nav-next').addEventListener('click', () => {
+  btnNext.addEventListener('click', () => {
     const i = getActiveIndex();
     if (i < sections.length - 1) sections[i + 1].scrollIntoView({ behavior: 'smooth' });
   });
+
+  window.addEventListener('scroll', updateMobileNav, { passive: true });
+  updateMobileNav();
 } else {
+  const sections = document.querySelectorAll('.reveal .slides > section');
+  const lastIdx  = sections.length - 1;
+
+  function updateDesktopNav() {
+    const idx = Reveal.getIndices().h;
+    btnPrev.disabled = (idx === 0);
+    btnNext.disabled = (idx === lastIdx);
+  }
+
   Reveal.initialize({
     hash: true,
     transition: 'fade',
     backgroundTransition: 'fade',
     controls: false,
   });
-  document.getElementById('nav-prev').addEventListener('click', () => Reveal.prev());
-  document.getElementById('nav-next').addEventListener('click', () => Reveal.next());
+
+  Reveal.on('ready',        updateDesktopNav);
+  Reveal.on('slidechanged', updateDesktopNav);
+
+  btnPrev.addEventListener('click', () => Reveal.prev());
+  btnNext.addEventListener('click', () => Reveal.next());
 }
 
 loadData().then(() => {
