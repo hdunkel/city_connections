@@ -15,10 +15,14 @@ function _resolveCSSColor(color) {
 }
 
 function _makeCanvas(el, W, H) {
+  const dpr = window.devicePixelRatio || 1;
   const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  c.style.cssText = 'display:block;cursor:grab';
+  c.width  = Math.round(W * dpr);
+  c.height = Math.round(H * dpr);
+  c.style.cssText = `display:block;cursor:grab;width:${W}px;height:${H}px`;
   el.appendChild(c);
+  // Scale context once so all draw calls use logical (CSS) coordinates.
+  if (dpr !== 1) c.getContext('2d').scale(dpr, dpr);
   return c;
 }
 
