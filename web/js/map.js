@@ -234,10 +234,14 @@ function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborC
   el.querySelectorAll('canvas').forEach(c => c.remove());
 
   const { px, py, N } = _preproject(graphData.nodes, proj);
-  const nodeIdx = new Map(graphData.nodes.map((n, i) => [n.id, i]));
-  const neighborSet = new Set(neighborIds);
+  const nodeIdx    = new Map(graphData.nodes.map((n, i) => [n.id, i]));
   const neighborPts = neighborIds.map(id => nodeIdx.get(id) ?? -1).filter(i => i >= 0);
-  const centerI = nodeIdx.get(centerId) ?? -1;
+  const centerI    = nodeIdx.get(centerId) ?? -1;
+
+  // Typed boolean array — faster than Set<string> for 11k iterations
+  const isSpecial = new Uint8Array(N);
+  if (centerI >= 0) isSpecial[centerI] = 1;
+  neighborPts.forEach(i => { isSpecial[i] = 1; });
 
   const canvas = _makeCanvas(el, W, H);
   const ctx = canvas.getContext('2d');
@@ -250,8 +254,7 @@ function renderExplorerMap(graphData, centerId, neighborIds, selector, neighborC
     ctx.beginPath();
     ctx.fillStyle = '#1e2235';
     for (let i = 0; i < N; i++) {
-      const n = graphData.nodes[i];
-      if (n.id === centerId || neighborSet.has(n.id)) continue;
+      if (isSpecial[i]) continue;
       const sx = px[i]*k+tx, sy = py[i]*k+ty;
       if (sx < -5 || sx > W+5 || sy < -5 || sy > H+5) continue;
       ctx.moveTo(sx + 1.2, sy);

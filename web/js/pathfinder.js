@@ -89,7 +89,8 @@ function initPathfinder(graphData) {
     const path = bfs(adj, fromId, toId);
     if (!path) {
       result.textContent = 'No path found between these cities.';
-      d3.select('#map-path svg').remove();
+      document.querySelectorAll('#map-path canvas, #map-path p.map-hint')
+        .forEach(e => e.remove());
       return;
     }
 
