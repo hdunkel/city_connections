@@ -27,7 +27,7 @@ function initExplorer(graphData) {
   input.parentNode.appendChild(dl);
 
   input.addEventListener('input', () => {
-    const val = input.value.toLowerCase();
+    const val = input.value.trim().toLowerCase();
     const matches = nodeNames.filter(n => n.toLowerCase().startsWith(val)).slice(0, 10);
     dl.replaceChildren(...matches.map(n => {
       const o = document.createElement('option');
